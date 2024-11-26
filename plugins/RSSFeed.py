@@ -52,7 +52,7 @@ async def check_rss():
                 episode = get_episode_number(entry.title)
                 anime_name = get_task_title(entry.title)
                 magnet_link = entry.link
-                message = f"/leech {magnet_link} -n {episode} {anime_name} [1080p][@AnimeQuestX]"
+                message = f"/leech {magnet_link} -n {episode} {anime_name} [1080p]@AnimeQuestX.mkv"
                 
                 await bot.send_message(GROUP_ID, message)
                 processed_ids_collection.insert_one({"post_id": post_id})
