@@ -3,8 +3,8 @@ import feedparser
 from pymongo import MongoClient
 import re
 import logging
-from bot import Bot  # Importing the Bot instance from bot.py
-from config import BOT_TOKEN, API_ID, API_HASH, OWNER_ID, GROUP_ID, RSS_URL, DB_URI, DB_NAME
+from pyrogram import Client
+from config import API_ID, API_HASH, STRING_SESSION, OWNER_ID, GROUP_ID, RSS_URL, DB_URI, DB_NAME
 
 # Configure logging
 logging.basicConfig(
@@ -35,7 +35,7 @@ def get_task_title(title):
     logger.debug(f"Extracted anime title: {anime_title} from title: {title}")
     return anime_title
 
-async def check_rss():
+async def check_rss(app):
     global is_reading
     while is_reading:
         logger.info("Checking RSS feed for new entries...")
@@ -61,17 +61,13 @@ async def check_rss():
 
             logger.info(f"Sending message to group: {message}")
 
-            # Ensure GROUP_ID is an integer
-            if isinstance(GROUP_ID, str):  # If GROUP_ID is a string, convert it to integer
-                GROUP_ID = int(GROUP_ID)
-            
             try:
                 # Send the message to the group
-                await Bot.send_message(chat_id=GROUP_ID, text=message)
+                await app.send_message(chat_id=GROUP_ID, text=message)
                 logger.info(f"Message sent to group {GROUP_ID}: {message}")
             except Exception as e:
                 logger.error(f"Error sending message: {e}")
-            
+
             # Save the post ID to avoid duplicates
             processed_ids_collection.insert_one({"post_id": post_id})
 
@@ -79,8 +75,7 @@ async def check_rss():
         logger.info("Waiting for the next RSS check...")
         await asyncio.sleep(120)  # Check RSS feed every 2 minutes
 
-@Bot.on_message()
-async def manage_tasks(client, message):
+async def manage_tasks(app, message):
     global is_reading
 
     # Ensure only the owner can use these commands
@@ -92,19 +87,27 @@ async def manage_tasks(client, message):
 
     if command[0] == "/startread":
         if is_reading:
-            await message.reply_text("RSS feed reading is already running.")
+            await app.send_message(chat_id=message.chat.id, text="RSS feed reading is already running.")
             logger.info("Attempted to start RSS reading, but it's already running.")
         else:
             is_reading = True
-            await message.reply_text("Started RSS feed reading.")
+            await app.send_message(chat_id=message.chat.id, text="Started RSS feed reading.")
             logger.info("Started RSS feed reading.")
-            await check_rss()  # Start reading process asynchronously
+            await check_rss(app)  # Start reading process asynchronously
 
     elif command[0] == "/stopread":
         if not is_reading:
-            await message.reply_text("RSS feed reading is not running.")
+            await app.send_message(chat_id=message.chat.id, text="RSS feed reading is not running.")
             logger.info("Attempted to stop RSS reading, but it's not running.")
         else:
             is_reading = False
-            await message.reply_text("Stopped RSS feed reading.")
+            await app.send_message(chat_id=message.chat.id, text="Stopped RSS feed reading.")
             logger.info("Stopped RSS feed reading.")
+
+async def main():
+    async with Client("my_account", api_id=API_ID, api_hash=API_HASH, session_string=STRING_SESSION) as app:
+        @app.on_message()
+        async def on_message(client, message):
+            await manage_tasks(app, message)
+        logger.info("Running as user account...")
+        await app.start()
