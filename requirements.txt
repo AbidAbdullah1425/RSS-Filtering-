@@ -5,6 +5,8 @@ pymongo
 pyromod==1.5
 dnspython
 feedparser
+motor
+
 
 
 
