@@ -82,11 +82,12 @@ class Bot(Client):
 
 # User Account Client Initialization
 user_client = Client(
-    session_name="UserClient",
+    "user_client",  # A simple string name (not session_name)
     api_id=API_ID,
     api_hash=API_HASH,
-    session_string=STRING_SESSION
+    session_string=STRING_SESSION  # Pass your string session here
 )
+
 
 # Export the user client for other scripts
 __all__ = ["user_client", "Bot"]
