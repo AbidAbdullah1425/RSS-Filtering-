@@ -60,11 +60,21 @@ async def check_rss():
             message = f"/leech {magnet_link} -n {episode} {anime_name} [1080p][@AnimeQuestX].mkv"
 
             logger.info(f"Sending message to group: {message}")
-            await Bot.send_message(chat_id=GROUP_ID, text=message)
 
+            # Ensure GROUP_ID is an integer
+            if isinstance(GROUP_ID, str):  # If GROUP_ID is a string, convert it to integer
+                GROUP_ID = int(GROUP_ID)
+            
+            try:
+                # Send the message to the group
+                await Bot.send_message(chat_id=GROUP_ID, text=message)
+                logger.info(f"Message sent to group {GROUP_ID}: {message}")
+            except Exception as e:
+                logger.error(f"Error sending message: {e}")
+            
             # Save the post ID to avoid duplicates
             processed_ids_collection.insert_one({"post_id": post_id})
-        
+
         # Wait before checking again
         logger.info("Waiting for the next RSS check...")
         await asyncio.sleep(120)  # Check RSS feed every 2 minutes
@@ -98,5 +108,3 @@ async def manage_tasks(client, message):
             is_reading = False
             await message.reply_text("Stopped RSS feed reading.")
             logger.info("Stopped RSS feed reading.")
-
-
