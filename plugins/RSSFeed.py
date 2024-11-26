@@ -3,6 +3,7 @@ import feedparser
 from pyrogram import Client
 from pymongo import MongoClient
 import re
+from bot import Bot
 from config import BOT_TOKEN, API_ID, API_HASH, OWNER_ID, GROUP_ID, RSS_URL, DB_URI, DB_NAME
 
 # MongoDB setup
