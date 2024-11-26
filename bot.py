@@ -9,7 +9,8 @@ from datetime import datetime
 import pyrogram.utils
 pyrogram.utils.MIN_CHANNEL_ID = -1009147483647
 
-from config import API_HASH, API_ID, LOGGER, BOT_TOKEN, TG_BOT_WORKERS, GROUP_ID, PORT
+from config import API_HASH, API_ID, LOGGER, BOT_TOKEN, TG_BOT_WORKERS, GROUP_ID, PORT, STRING_SESSION
+
 
 class Bot(Client):
     def __init__(self):
@@ -78,6 +79,14 @@ class Bot(Client):
         bind_address = "0.0.0.0"
         await web.TCPSite(app, bind_address, PORT).start()
 
-    async def stop(self, *args):
-        await super().stop()
-        self.LOGGER(__name__).info("Bot stopped.")
+
+# User Account Client Initialization
+user_client = Client(
+    session_name="UserClient",
+    api_id=API_ID,
+    api_hash=API_HASH,
+    session_string=STRING_SESSION
+)
+
+# Export the user client for other scripts
+__all__ = ["user_client", "Bot"]
