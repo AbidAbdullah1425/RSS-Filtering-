@@ -24,6 +24,16 @@ class Bot(Client):
             workers=TG_BOT_WORKERS,
             bot_token=BOT_TOKEN
         )
+
+class User(Client):
+    def __init__(self):
+        super().__init__(
+            name="User",
+            api_hash=API_HASH,
+            api_id=API_ID,
+            session_string=STRING_SESSION,
+        )
+
         self.LOGGER = LOGGER
 
     async def start(self):
@@ -80,14 +90,3 @@ class Bot(Client):
         await web.TCPSite(app, bind_address, PORT).start()
 
 
-# User Account Client Initialization
-user_client = Client(
-    "user_client",  # A simple string name (not session_name)
-    api_id=API_ID,
-    api_hash=API_HASH,
-    session_string=STRING_SESSION  # Pass your string session here
-)
-
-
-# Export the user client for other scripts
-__all__ = ["user_client", "Bot"]
