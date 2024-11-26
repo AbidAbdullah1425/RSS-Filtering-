@@ -25,15 +25,6 @@ class Bot(Client):
             bot_token=BOT_TOKEN
         )
 
-class User(Client):
-    def __init__(self):
-        super().__init__(
-            name="User",
-            api_hash=API_HASH,
-            api_id=API_ID,
-            session_string=STRING_SESSION,
-        )
-
         self.LOGGER = LOGGER
 
     async def start(self):
