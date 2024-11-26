@@ -11,7 +11,7 @@ from datetime import datetime
 import pyrogram.utils
 pyrogram.utils.MIN_CHANNEL_ID = -1009147483647
 
-from config import API_HASH, API_ID, LOGGER, TG_BOT_TOKEN, TG_BOT_WORKERS, GROUP_ID, PORT
+from config import API_HASH, API_ID, LOGGER, BOT_TOKEN, TG_BOT_WORKERS, GROUP_ID, PORT
 
 class Bot(Client):
     def __init__(self):
@@ -23,7 +23,7 @@ class Bot(Client):
                 "root": "plugins"
             },
             workers=TG_BOT_WORKERS,
-            bot_token=TG_BOT_TOKEN
+            bot_token=BOT_TOKEN
         )
         self.LOGGER = LOGGER
 
@@ -33,17 +33,34 @@ class Bot(Client):
         self.uptime = datetime.now()
 
         try:
-            db_channel = await self.get_chat(GROUP_ID)
-            self.db_channel = db_channel
-            test = await self.send_message(chat_id=db_channel.id, text="Test Message")
-            await test.delete()
-        except Exception as e:
-            self.LOGGER(__name__).warning(e)
-            self.LOGGER(__name__).warning(
-                f"Make Sure bot is Admin in DB Channel, and Double check the CHANNEL_ID Value, Current Value {CHANNEL_ID}"
-            )
-            self.LOGGER(__name__).info("\nBot Stopped. Join https://t.me/weebs_support for support")
-            sys.exit()
+    db_group = await self.get_chat(GROUP_ID)
+    self.db_group = db_group
+
+    # Check if the bot has administrative rights in the group
+    bot_member = await self.get_chat_member(chat_id=db_group.id, user_id=self.me.id)
+    if not bot_member.can_manage_chat:
+        raise PermissionError(
+            f"Bot lacks necessary admin permissions in the group. Current permissions: {bot_member}"
+        )
+
+    # Send a test message to confirm access
+    test_message = await self.send_message(chat_id=db_group.id, text="Test Message")
+    await test_message.delete()
+except PermissionError as perm_error:
+    self.LOGGER(__name__).warning(perm_error)
+    self.LOGGER(__name__).warning(
+        f"Ensure the bot is an admin in the group and can manage the chat. Current GROUP_ID value: {GROUP_ID}"
+    )
+    self.LOGGER(__name__).info("\nBot Stopped. Join https://t.me/weebs_support for support")
+    sys.exit()
+except Exception as e:
+    self.LOGGER(__name__).warning(e)
+    self.LOGGER(__name__).warning(
+        f"Double-check the GROUP_ID value. Current value: {GROUP_ID}"
+    )
+    self.LOGGER(__name__).info("\nBot Stopped. Join https://t.me/weebs_support for support")
+    sys.exit()
+
 
         self.set_parse_mode(ParseMode.HTML)
         self.LOGGER(__name__).info(f"Bot Running..!\n\nCreated by \nhttps://t.me/codeflix_bots")
