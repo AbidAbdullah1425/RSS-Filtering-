@@ -2,6 +2,7 @@ import feedparser
 from pyrogram import Client
 from pymongo import MongoClient
 import re
+from bot import Bot
 from config import BOT_TOKEN, API_ID, API_HASH, OWNER_ID, GROUP_ID, RSS_URL, DB_URI, DB_NAME
 
 # MongoDB setup
@@ -9,9 +10,6 @@ client = MongoClient(DB_URI)
 db = client[DB_NAME]
 tasks_collection = db["tasks"]
 processed_ids_collection = db["processed_ids"]
-
-# Pyrogram bot setup
-bot = Client("rss_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
 # Utility functions
 def get_episode_number(title):
