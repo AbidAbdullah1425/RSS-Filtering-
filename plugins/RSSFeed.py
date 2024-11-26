@@ -65,7 +65,8 @@ async def check_rss():
                     message = f"/leech {magnet_link} -n {episode} {anime_name} [1080p][@AnimeQuestX].mkv"
 
                     logger.info(f"Sending message to group: {message}")
-                    await Bot.send_message(chat_id=GROUP_ID, text=message)  # Correct argument use
+                    await client.send_message(chat_id=GROUP_ID, text=message)
+  # Correct argument use
                     processed_ids_collection.insert_one({"post_id": post_id})
                     break
 
