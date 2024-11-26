@@ -1,5 +1,3 @@
-# (©)Codexbotz
-
 from aiohttp import web
 from plugins import web_server
 
@@ -12,7 +10,6 @@ import pyrogram.utils
 pyrogram.utils.MIN_CHANNEL_ID = -1009147483647
 
 from config import API_HASH, API_ID, LOGGER, BOT_TOKEN, TG_BOT_WORKERS, GROUP_ID, PORT
-
 
 class Bot(Client):
     def __init__(self):
@@ -39,9 +36,9 @@ class Bot(Client):
 
             # Check if the bot has administrative rights in the group
             bot_member = await self.get_chat_member(chat_id=db_group.id, user_id=self.me.id)
-            if not bot_member.can_manage_chat:
+            if not bot_member.privileges or not bot_member.privileges.can_manage_chat:
                 raise PermissionError(
-                    f"Bot lacks necessary admin permissions in the group. Current permissions: {bot_member}"
+                    f"Bot lacks necessary admin permissions in the group. Current permissions: {bot_member.privileges}"
                 )
 
             # Send a test message to confirm access
@@ -64,7 +61,7 @@ class Bot(Client):
 
         self.set_parse_mode(ParseMode.HTML)
         self.LOGGER(__name__).info(f"Bot Running..!\n\nCreated by \nhttps://t.me/codeflix_bots")
-        self.LOGGER(__name__).info(f"""       
+        self.LOGGER(__name__).info(r"""       
 
   ___ ___  ___  ___ ___ _    _____  _____  ___ _____ ___ 
  / __/ _ \|   \| __| __| |  |_ _\ \/ / _ )/ _ \_   _/ __|
@@ -73,6 +70,7 @@ class Bot(Client):
                                                          
  
                                           """)
+
         self.username = usr_bot_me.username
         # Web-response
         app = web.AppRunner(await web_server())
@@ -83,4 +81,3 @@ class Bot(Client):
     async def stop(self, *args):
         await super().stop()
         self.LOGGER(__name__).info("Bot stopped.")
-
