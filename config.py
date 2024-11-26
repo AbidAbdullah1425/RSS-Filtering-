@@ -7,7 +7,7 @@ import os
 import logging
 from logging.handlers import RotatingFileHandler
 
-
+STRING_SESSION = os.environ.get("STRING_SESSION", "BQAf70YAJXap0OxcBxDHbNSPOMd9tUjY1uR0CG6QsM5mrjAcP568us6SVZqJvquA9_JJV9sHzJhz328iYuDREEJAL1n2ttBcxVFmNlZhojsYDN7-k-t-Ot5l2X8oT92GGMr1ULF3vi_CvtJMeT-KWnsJgf-Ej1n6MZvwXowuVjmdTkesBjqtsASCkdTyl1Wrk0jhUwXlspEG9akVRyEwnqvw5rYtvv-ssSuj7YIW5xnvlj7P0m8_aLEzLO9e9LIbJY0LsXJhckmnm_oQp7gQq2pcsi5tNffKYe_egUI419ZOR1Zi6In77ZfVqwJZJAGt3onWvLF9PA2AJyD_6LHzK6ElokYqYwAAAAE7s3WDAA")
 
 #Bot token @Botfather
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "7582846707:AAGaiAZz3TVaKb3-hb4L2RPKLqi2KSokz0c")
