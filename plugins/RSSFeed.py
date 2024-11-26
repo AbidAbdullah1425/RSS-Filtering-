@@ -1,10 +1,9 @@
 import asyncio
 import feedparser
-from pyrogram import Client
 from pymongo import MongoClient
 import re
 import logging
-from bot import Bot
+from bot import Bot  # Importing the Bot instance from bot.py
 from config import BOT_TOKEN, API_ID, API_HASH, OWNER_ID, GROUP_ID, RSS_URL, DB_URI, DB_NAME
 
 # Configure logging
@@ -18,7 +17,6 @@ logger = logging.getLogger(__name__)
 # MongoDB setup
 client = MongoClient(DB_URI)
 db = client[DB_NAME]
-tasks_collection = db["tasks"]
 processed_ids_collection = db["processed_ids"]
 
 # Global variable to control reading
@@ -42,8 +40,6 @@ async def check_rss():
     while is_reading:
         logger.info("Checking RSS feed for new entries...")
         feed = feedparser.parse(RSS_URL)
-        tasks = [t["task"] for t in tasks_collection.find()]
-        logger.debug(f"Current tasks: {tasks}")
 
         for entry in feed.entries:
             logger.debug(f"Processing entry: {entry.title}")
@@ -57,19 +53,19 @@ async def check_rss():
                 logger.info(f"Skipping already processed entry: {post_id}")
                 continue
 
-            for task in tasks:
-                if task in entry.title:
-                    episode = get_episode_number(entry.title)
-                    anime_name = get_task_title(entry.title)
-                    magnet_link = entry.link
-                    message = f"/leech {magnet_link} -n {episode} {anime_name} [1080p][@AnimeQuestX].mkv"
+            # Process the new post
+            episode = get_episode_number(entry.title)
+            anime_name = get_task_title(entry.title)
+            magnet_link = entry.link
+            message = f"/leech {magnet_link} -n {episode} {anime_name} [1080p][@AnimeQuestX].mkv"
 
-                    logger.info(f"Sending message to group: {message}")
-                    await client.send_message(chat_id=GROUP_ID, text=message)
-  # Correct argument use
-                    processed_ids_collection.insert_one({"post_id": post_id})
-                    break
+            logger.info(f"Sending message to group: {message}")
+            await Bot.send_message(chat_id=GROUP_ID, text=message)
 
+            # Save the post ID to avoid duplicates
+            processed_ids_collection.insert_one({"post_id": post_id})
+        
+        # Wait before checking again
         logger.info("Waiting for the next RSS check...")
         await asyncio.sleep(120)  # Check RSS feed every 2 minutes
 
@@ -84,25 +80,7 @@ async def manage_tasks(client, message):
 
     command = message.text.split()
 
-    if command[0] == "/addtask" and len(command) > 1:
-        task = " ".join(command[1:])
-        tasks_collection.update_one({"task": task}, {"$set": {"task": task}}, upsert=True)
-        await message.reply_text(f"Task '{task}' added successfully.")
-        logger.info(f"Task added: {task}")
-
-    elif command[0] == "/deltask" and len(command) > 1:
-        task = " ".join(command[1:])
-        tasks_collection.delete_one({"task": task})
-        await message.reply_text(f"Task '{task}' deleted successfully.")
-        logger.info(f"Task deleted: {task}")
-
-    elif command[0] == "/listtasks":
-        tasks = [t["task"] for t in tasks_collection.find()]
-        task_list = "Tasks:\n" + "\n".join(tasks) if tasks else "No tasks found."
-        await message.reply_text(task_list)
-        logger.info("Listed tasks.")
-
-    elif command[0] == "/startread":
+    if command[0] == "/startread":
         if is_reading:
             await message.reply_text("RSS feed reading is already running.")
             logger.info("Attempted to start RSS reading, but it's already running.")
@@ -120,3 +98,5 @@ async def manage_tasks(client, message):
             is_reading = False
             await message.reply_text("Stopped RSS feed reading.")
             logger.info("Stopped RSS feed reading.")
+
+
