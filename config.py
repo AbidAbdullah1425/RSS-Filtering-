@@ -33,7 +33,7 @@ DB_NAME = os.environ.get("DATABASE_NAME", "Cluster0")
 
 GROUP_ID = int(os.environ.get("GROUP_ID","-1002322411485"))
 
-RSS_FEED = os.environ.get("RSS_FEED","https://subsplease.org/rss/?r=sd")
+RSS_URL = os.environ.get("RSS_URL","https://subsplease.org/rss/?r=sd")
 
 
 #force sub channel id, if you want enable force sub
