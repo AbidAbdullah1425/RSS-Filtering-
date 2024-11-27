@@ -4,7 +4,7 @@ import logging
 from pyrogram import Client, filters
 from pymongo import MongoClient
 from config import RSS_URL, GROUP_ID, OWNER_ID, DB_URI, DB_NAME, API_ID, API_HASH, STRING_SESSION
-from bot import Bot
+from bot import Bot, User
 
 # Configure logging
 logging.basicConfig(
@@ -18,9 +18,6 @@ mongo_client = MongoClient(DB_URI)
 db = mongo_client[DB_NAME]
 anime_collection = db["anime_names"]
 rss_collection = db["rss_entries"]
-
-# Create the Pyrogram Client
-app = Client("my_account", api_id=API_ID, api_hash=API_HASH, session_string=STRING_SESSION)
 
 is_reading = False  # Flag to track reading status
 
