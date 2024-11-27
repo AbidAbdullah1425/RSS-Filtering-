@@ -11,6 +11,17 @@ pyrogram.utils.MIN_CHANNEL_ID = -1009147483647
 
 from config import API_HASH, API_ID, LOGGER, BOT_TOKEN, TG_BOT_WORKERS, GROUP_ID, PORT, STRING_SESSION
 
+# Create the user client instance for interaction with the Telegram API
+User = Client(
+    name="User",
+    api_hash=API_HASH,
+    api_id=API_ID,
+    session_string=STRING_SESSION,
+    workers=TG_BOT_WORKERS,
+    plugins={
+        "root": "plugins"  # Specify the plugins directory for the User client
+    }
+)
 
 class Bot(Client):
     def __init__(self):
@@ -19,7 +30,7 @@ class Bot(Client):
             api_hash=API_HASH,
             api_id=API_ID,
             plugins={
-                "root": "plugins"
+                "root": "plugins"  # Specify the plugins directory for the Bot client
             },
             workers=TG_BOT_WORKERS,
             bot_token=BOT_TOKEN
@@ -79,5 +90,3 @@ class Bot(Client):
         await app.setup()
         bind_address = "0.0.0.0"
         await web.TCPSite(app, bind_address, PORT).start()
-
-
