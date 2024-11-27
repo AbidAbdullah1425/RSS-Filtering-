@@ -5,6 +5,13 @@ from pymongo import MongoClient
 from config import RSS_URL, GROUP_ID, OWNER_ID, DB_URI, DB_NAME, API_ID, API_HASH, STRING_SESSION
 from bot import Bot
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
+
 # MongoDB setup
 mongo_client = MongoClient(DB_URI)
 db = mongo_client[DB_NAME]
@@ -105,3 +112,13 @@ async def delete_task(_, message):
         await message.reply_text(f"Removed `{anime_name}` from the tracked list.")
     else:
         await message.reply_text(f"`{anime_name}` is not in the tracked list.")
+
+async def main():
+    logger.info("Starting Pyrogram client...")
+    await User.start()
+    logger.info("Pyrogram client started successfully!")
+
+    # Keep the bot running
+    await User.idle()
+
+asyncio.run(main())
