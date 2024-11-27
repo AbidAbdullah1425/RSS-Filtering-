@@ -19,13 +19,8 @@ db = mongo_client[DB_NAME]
 anime_collection = db["anime_names"]
 rss_collection = db["rss_entries"]
 
-# Define the User client in the main code
-User = Client(
-    name="User",
-    api_id=API_ID,
-    api_hash=API_HASH,
-    session_string=STRING_SESSION,
-)
+# Create the Pyrogram Client
+app = Client("my_account", api_id=API_ID, api_hash=API_HASH, session_string=STRING_SESSION)
 
 is_reading = False  # Flag to track reading status
 
@@ -122,10 +117,15 @@ async def delete_task(_, message):
 
 
 async def main():
-    logger.info("Starting Pyrogram client...")
-    await User.start()
-    logger.info("Pyrogram client started successfully!")
+    try:
+        logger.info("Starting Pyrogram client...")
+        await User.start()
+        logger.info("Pyrogram client started successfully!")
+        logger.info("Starting RSS feed reading...")
+        asyncio.create_task(fetch_and_send_anime())
 
-    logger.info("Bot is now running!")
-    await Bot.start()
-    await asyncio.gather(User.idle(), Bot.idle())
+        # Keep the bot running
+        await User.idle()
+    finally:
+        await User.stop()
+        logger.info("Pyrogram client stopped.")
