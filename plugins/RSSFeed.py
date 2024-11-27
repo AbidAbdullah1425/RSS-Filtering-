@@ -11,7 +11,7 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("RSSBot")
 
 # MongoDB setup
 mongo_client = MongoClient(DB_URI)
@@ -33,26 +33,32 @@ is_reading = False  # Flag to track reading status
 async def fetch_and_send_anime():
     """Fetch matching anime titles from the RSS feed and send them to the group."""
     global is_reading
+    logger.info("Starting RSS feed reading...")
     while is_reading:
-        feed = feedparser.parse(RSS_URL)
-        anime_names = [anime["name"] for anime in anime_collection.find()]
+        try:
+            feed = feedparser.parse(RSS_URL)
+            anime_names = [anime["name"] for anime in anime_collection.find()]
 
-        for entry in feed.entries:
-            title = entry.title
-            link = entry.link
+            for entry in feed.entries:
+                title = entry.title
+                link = entry.link
 
-            if rss_collection.find_one({"link": link}):
-                continue
+                if rss_collection.find_one({"link": link}):
+                    continue
 
-            if any(name.lower() in title.lower() for name in anime_names):
-                await User.send_message(
-                    GROUP_ID,
-                    f"**{title}**\n[Read More]({link})",
-                    disable_web_page_preview=True,
-                )
-                rss_collection.insert_one({"link": link, "title": title})
+                if any(name.lower() in title.lower() for name in anime_names):
+                    await User.send_message(
+                        GROUP_ID,
+                        f"**{title}**\n[Read More]({link})",
+                        disable_web_page_preview=True,
+                    )
+                    rss_collection.insert_one({"link": link, "title": title})
 
-        await asyncio.sleep(120)  # 2-minute interval
+            logger.info("RSS feed processed. Sleeping for 2 minutes.")
+            await asyncio.sleep(120)  # 2-minute interval
+
+        except Exception as e:
+            logger.error(f"Error in fetch_and_send_anime: {e}")
 
 
 @Bot.on_message(filters.command("startread") & filters.private & filters.user(OWNER_ID))
@@ -114,11 +120,12 @@ async def delete_task(_, message):
     else:
         await message.reply_text(f"`{anime_name}` is not in the tracked list.")
 
+
 async def main():
     logger.info("Starting Pyrogram client...")
     await User.start()
     logger.info("Pyrogram client started successfully!")
 
-    # Keep the bot running
-    await User.idle()
-
+    logger.info("Bot is now running!")
+    await Bot.start()
+    await asyncio.gather(User.idle(), Bot.idle())
