@@ -122,4 +122,3 @@ async def main():
     # Keep the bot running
     await User.idle()
 
-asyncio.run(main())
