@@ -37,7 +37,7 @@ def format_rss_message(title, link):
             episode_number = episode_part.upper().replace(" ", "")
 
     formatted_message = (
-        f"/leech mirror {link} -n [{episode_number}] - "
+        f"/leech {link} -n [{episode_number}] - "
         f"[{anime_name}][Eng Sub][1080p][@AnimeQuestX].mkv"
     )
     return formatted_message
