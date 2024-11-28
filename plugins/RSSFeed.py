@@ -4,6 +4,7 @@ import logging
 from pyrogram import Client, filters
 from pymongo import MongoClient
 from config import RSS_URL, GROUP_ID, OWNER_ID, DB_URI, DB_NAME, API_ID, API_HASH, STRING_SESSION
+from bot import Bot
 
 # Configure logging
 logging.basicConfig(
