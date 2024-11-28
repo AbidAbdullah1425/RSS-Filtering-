@@ -1,16 +1,15 @@
-import sys
 import asyncio
+import sys
 from datetime import datetime
 from aiohttp import web
-from plugins import web_server
-
-import pyromod.listen
-from pyrogram import Client
+from pyrogram import Client, errors
 from pyrogram.enums import ParseMode
 import pyrogram.utils
-pyrogram.utils.MIN_CHANNEL_ID = -1009147483647
-
 from config import API_HASH, API_ID, LOGGER, BOT_TOKEN, TG_BOT_WORKERS, GROUP_ID, PORT, STRING_SESSION
+from plugins import web_server
+
+# Configure the maximum channel ID for Pyrogram
+pyrogram.utils.MIN_CHANNEL_ID = -1009147483647
 
 # Create the user client instance for interaction with the Telegram API
 User = Client(
@@ -40,85 +39,77 @@ class Bot(Client):
         self.LOGGER = LOGGER
 
     async def start(self):
-        self.LOGGER(__name__).info("Starting Bot client...")
+        await super().start()
+        usr_bot_me = await self.get_me()
+        self.uptime = datetime.now()
 
         try:
-            await super().start()
-            usr_bot_me = await self.get_me()
-            self.uptime = datetime.now()
+            db_group = await self.get_chat(GROUP_ID)
+            self.db_group = db_group
 
-            self.LOGGER(__name__).info("Bot client started successfully.")
-
-            try:
-                db_group = await self.get_chat(GROUP_ID)
-                self.db_group = db_group
-
-                # Check if the bot has administrative rights in the group
-                bot_member = await self.get_chat_member(chat_id=db_group.id, user_id=self.me.id)
-                if not bot_member.privileges or not bot_member.privileges.can_manage_chat:
-                    raise PermissionError(
-                        f"Bot lacks necessary admin permissions in the group. Current permissions: {bot_member.privileges}"
-                    )
-
-                # Send a test message to confirm access
-                test_message = await self.send_message(chat_id=db_group.id, text="Test Message")
-                await test_message.delete()
-
-            except PermissionError as perm_error:
-                self.LOGGER(__name__).warning(perm_error)
-                self.LOGGER(__name__).warning(
-                    f"Ensure the bot is an admin in the group and can manage the chat. Current GROUP_ID value: {GROUP_ID}"
+            # Check if the bot has administrative rights in the group
+            bot_member = await self.get_chat_member(chat_id=db_group.id, user_id=self.me.id)
+            if not bot_member.privileges or not bot_member.privileges.can_manage_chat:
+                raise PermissionError(
+                    f"Bot lacks necessary admin permissions in the group. Current permissions: {bot_member.privileges}"
                 )
-                self.LOGGER(__name__).info("\nBot Stopped. Join https://t.me/weebs_support for support")
-                sys.exit()
-            except Exception as e:
-                self.LOGGER(__name__).warning(e)
-                self.LOGGER(__name__).warning(
-                    f"Double-check the GROUP_ID value. Current value: {GROUP_ID}"
-                )
-                self.LOGGER(__name__).info("\nBot Stopped. Join https://t.me/weebs_support for support")
-                sys.exit()
 
-            self.set_parse_mode(ParseMode.HTML)
-            self.LOGGER(__name__).info(f"Bot Running..!\n\nCreated by \nhttps://t.me/codeflix_bots")
-            self.LOGGER(__name__).info(r"""       
-
-  ___ ___  ___  ___ ___ _    _____  _____  ___ _____ ___ 
- / __/ _ \|   \| __| __| |  |_ _\ \/ / _ )/ _ \_   _/ __|
-| (_| (_) | |) | _|| _|| |__ | | >  <| _ \ (_) || | \__ \\
- \___\___/|___/|___|_| |____|___/_/\_\___/\___/ |_| |___/
-                                                         
- 
-                                          """)
-
-            self.username = usr_bot_me.username
-
-            # Web-response setup
-            app = web.AppRunner(await web_server())
-            await app.setup()
-            bind_address = "0.0.0.0"
-            await web.TCPSite(app, bind_address, PORT).start()
-
+            # Send a test message to confirm access
+            test_message = await self.send_message(chat_id=db_group.id, text="Test Message")
+            await test_message.delete()
+        except PermissionError as perm_error:
+            self.LOGGER(__name__).warning(perm_error)
+            self.LOGGER(__name__).warning(
+                f"Ensure the bot is an admin in the group and can manage the chat. Current GROUP_ID value: {GROUP_ID}"
+            )
+            self.LOGGER(__name__).info("\nBot Stopped. Join https://t.me/weebs_support for support")
+            sys.exit()
         except Exception as e:
-            self.LOGGER(__name__).error("Failed to start Bot client.")
-            self.LOGGER(__name__).exception(e)
+            self.LOGGER(__name__).warning(e)
+            self.LOGGER(__name__).warning(
+                f"Double-check the GROUP_ID value. Current value: {GROUP_ID}"
+            )
+            self.LOGGER(__name__).info("\nBot Stopped. Join https://t.me/weebs_support for support")
             sys.exit()
 
-# Start User client as a check
+        self.set_parse_mode(ParseMode.HTML)
+        self.LOGGER(__name__).info(f"Bot Running..!")
+        self.LOGGER(__name__).info(r"""       
+  ___ ___  ___  ___ ___ _    _____  _____  ___ _____ ___ 
+ / __/ _ \|   \| __| __| |  |_ _\ \/ / _ )/ _ \_   _/ __|
+| (_| (_) | |) | _|| _|| |__ | | >  <| _ \ (_) || | \__ \\n \___\___/|___/|___|_| |____|___/_/\_\___/\___/ |_| |___/
+                                                         
+""")
+        
+        self.username = usr_bot_me.username
+        
+        # Web-response
+        app = web.AppRunner(await web_server())
+        await app.setup()
+        bind_address = "0.0.0.0"
+        await web.TCPSite(app, bind_address, PORT).start()
+
+# Start the user client
 async def start_user_client():
     try:
         await User.start()
-        User_me = await User.get_me()
-        LOGGER(__name__).info(f"User client started successfully. Username: {User_me.username}")
+        LOGGER(__name__).info("User client started successfully. Username: " + (await User.get_me()).username)
+    except errors.FloodWait as e:
+        LOGGER(__name__).error(f"Flood wait error: {e}")
+        sys.exit()
     except Exception as e:
-        LOGGER(__name__).error("Failed to start User client.")
-        LOGGER(__name__).exception(e)
+        LOGGER(__name__).error(f"Failed to start User client: {e}")
         sys.exit()
 
-# Main script execution
+# Main execution block
 if __name__ == "__main__":
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
+
+    # Start the user client and log its status
     loop.run_until_complete(start_user_client())
+    LOGGER(__name__).info("User client initialized successfully.")
+
+    # Start the Bot client
     bot = Bot()
     loop.run_until_complete(bot.start())
