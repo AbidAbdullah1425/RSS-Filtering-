@@ -22,6 +22,27 @@ rss_collection = db["rss_entries"]
 is_reading = False  # Flag to track reading status
 
 
+def format_rss_message(title, link):
+    """Format the RSS entry message to the specified format."""
+    # Extracting the episode number and anime name
+    episode_number = "EP01"  # Default if no episode number is found
+    anime_name = "Unknown Anime"
+
+    # Attempt to parse episode number and anime name from the title
+    title_parts = title.split("-")
+    if len(title_parts) >= 2:
+        anime_name = title_parts[0].strip()
+        episode_part = title_parts[1].strip()
+        if episode_part.lower().startswith("ep") and len(episode_part) > 2:
+            episode_number = episode_part.upper().replace(" ", "")
+
+    formatted_message = (
+        f"/leech mirror {link} -n [{episode_number}] - "
+        f"[{anime_name}][Eng Sub][1080p][@AnimeQuestX].mkv"
+    )
+    return formatted_message
+
+
 async def fetch_and_send_anime():
     """Fetch matching anime titles from the RSS feed and send them to the group."""
     global is_reading
@@ -43,9 +64,10 @@ async def fetch_and_send_anime():
                         logger.error("User client is not connected. Cannot send message.")
                         continue
 
+                    formatted_message = format_rss_message(title, link)
                     await User.send_message(
                         GROUP_ID,
-                        f"**{title}**\n[Read More]({link})",
+                        formatted_message,
                         disable_web_page_preview=True,
                     )
                     rss_collection.insert_one({"link": link, "title": title})
