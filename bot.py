@@ -1,4 +1,5 @@
 import sys
+import asyncio
 from datetime import datetime
 from aiohttp import web
 from plugins import web_server
@@ -114,11 +115,10 @@ async def start_user_client():
         LOGGER(__name__).exception(e)
         sys.exit()
 
-async def main():
-    await start_user_client()
+# Main script execution
+if __name__ == "__main__":
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(start_user_client())
     bot = Bot()
-    await bot.start()
-
-# Execute main function directly as Koyeb will run the script without a __name__ check.
-import asyncio
-asyncio.run(main())
+    loop.run_until_complete(bot.start())
