@@ -4,7 +4,6 @@ import logging
 from pyrogram import Client, filters
 from pymongo import MongoClient
 from config import RSS_URL, GROUP_ID, OWNER_ID, DB_URI, DB_NAME, API_ID, API_HASH, STRING_SESSION
-from bot import Bot, User
 
 # Configure logging
 logging.basicConfig(
@@ -20,6 +19,14 @@ anime_collection = db["anime_names"]
 rss_collection = db["rss_entries"]
 
 is_reading = False  # Flag to track reading status
+
+# User client for sending messages
+User = Client(
+    "user_client",
+    api_id=API_ID,
+    api_hash=API_HASH,
+    session_string=STRING_SESSION
+)
 
 async def fetch_and_send_anime():
     """Fetch matching anime titles from the RSS feed and send them to the group."""
@@ -106,29 +113,21 @@ async def delete_task(_, message):
     else:
         await message.reply_text(f"`{anime_name}` is not in the tracked list.")
 
-@Bot.on_message(filters.command("startuser") & filters.private & filters.user(OWNER_ID))
-async def start_user_client(_, message):
-    if not User.is_connected:  # Check if the client is already running
-        try:
-            logger.info("Starting User client...")
-            await User.start()
-            await message.reply_text("User client started successfully!")
-        except Exception as e:
-            logger.error(f"Failed to start User client: {e}")
-            await message.reply_text("Failed to start User client. Please check the logs.")
-    else:
-        await message.reply_text("User client is already running.")
-
 async def main():
     try:
-        logger.info("Starting Pyrogram client...")
+        logger.info("Starting User client...")
         await User.start()
-        logger.info("Pyrogram client started successfully!")
-        logger.info("Starting RSS feed reading...")
-        asyncio.create_task(fetch_and_send_anime())
+        logger.info("User client started successfully!")
 
-        # Keep the bot running
-        await User.idle()
+        logger.info("Starting Bot client...")
+        await Bot.start()
+        logger.info("Bot client started successfully!")
+
+        logger.info("Bot is now running.")
+        await Bot.idle()
+
     finally:
+        logger.info("Stopping clients...")
+        await Bot.stop()
         await User.stop()
-        logger.info("Pyrogram client stopped.")
+        logger.info("Clients stopped.")
