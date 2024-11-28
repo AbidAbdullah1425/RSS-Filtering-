@@ -21,7 +21,6 @@ rss_collection = db["rss_entries"]
 
 is_reading = False  # Flag to track reading status
 
-
 async def fetch_and_send_anime():
     """Fetch matching anime titles from the RSS feed and send them to the group."""
     global is_reading
@@ -52,7 +51,6 @@ async def fetch_and_send_anime():
         except Exception as e:
             logger.error(f"Error in fetch_and_send_anime: {e}")
 
-
 @Bot.on_message(filters.command("startread") & filters.private & filters.user(OWNER_ID))
 async def start_read(_, message):
     global is_reading
@@ -63,7 +61,6 @@ async def start_read(_, message):
         await message.reply_text("Started reading the RSS feed.")
         asyncio.create_task(fetch_and_send_anime())
 
-
 @Bot.on_message(filters.command("stopread") & filters.private & filters.user(OWNER_ID))
 async def stop_read(_, message):
     global is_reading
@@ -73,7 +70,6 @@ async def stop_read(_, message):
         is_reading = False
         await message.reply_text("Stopped reading the RSS feed.")
 
-
 @Bot.on_message(filters.command("listtasks") & filters.private & filters.user(OWNER_ID))
 async def list_tasks(_, message):
     anime_names = [anime["name"] for anime in anime_collection.find()]
@@ -81,7 +77,6 @@ async def list_tasks(_, message):
         await message.reply_text("Tracked anime:\n" + "\n".join(anime_names))
     else:
         await message.reply_text("No anime is currently being tracked.")
-
 
 @Bot.on_message(filters.command("addtasks") & filters.private & filters.user(OWNER_ID))
 async def add_task(_, message):
@@ -97,7 +92,6 @@ async def add_task(_, message):
         anime_collection.insert_one({"name": anime_name})
         await message.reply_text(f"Added `{anime_name}` to the tracked list.")
 
-
 @Bot.on_message(filters.command("deltasks") & filters.private & filters.user(OWNER_ID))
 async def delete_task(_, message):
     args = message.text.split(" ", 1)
@@ -112,6 +106,18 @@ async def delete_task(_, message):
     else:
         await message.reply_text(f"`{anime_name}` is not in the tracked list.")
 
+@Bot.on_message(filters.command("startuser") & filters.private & filters.user(OWNER_ID))
+async def start_user_client(_, message):
+    if not User.is_connected:  # Check if the client is already running
+        try:
+            logger.info("Starting User client...")
+            await User.start()
+            await message.reply_text("User client started successfully!")
+        except Exception as e:
+            logger.error(f"Failed to start User client: {e}")
+            await message.reply_text("Failed to start User client. Please check the logs.")
+    else:
+        await message.reply_text("User client is already running.")
 
 async def main():
     try:
