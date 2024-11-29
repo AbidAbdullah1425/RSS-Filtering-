@@ -24,17 +24,17 @@ is_reading = False  # Flag to track reading status
 
 def format_rss_message(title, link):
     """Format the RSS entry message to the specified format."""
-    # Extracting the episode number and anime name
-    episode_number = "EP01"  # Default if no episode number is found
+    import re
+
+    # Default values
+    episode_number = "EP01"
     anime_name = "Unknown Anime"
 
     # Attempt to parse episode number and anime name from the title
-    title_parts = title.split("-")
-    if len(title_parts) >= 2:
-        anime_name = title_parts[0].strip()
-        episode_part = title_parts[1].strip()
-        if episode_part.lower().startswith("ep") and len(episode_part) > 2:
-            episode_number = episode_part.upper().replace(" ", "")
+    match = re.search(r"(.+?)\s*-\s*(\d+)", title)
+    if match:
+        anime_name = match.group(1).strip()
+        episode_number = f"EP{int(match.group(2)):02d}"
 
     formatted_message = (
         f"/leech {link} -n [{episode_number}] - "
@@ -156,22 +156,24 @@ async def delete_task(_, message):
 
 async def start_bot():
     """Start the bot and User client."""
-    try:
-        logger.info("Starting Pyrogram bot...")
-        await Bot.start()
-        logger.info("Bot started successfully.")
+    while True:
+        try:
+            logger.info("Starting Pyrogram bot...")
+            await Bot.start()
+            logger.info("Bot started successfully.")
 
-        if not User.is_connected:
-            logger.info("Starting User client...")
-            await User.start()
-            logger.info("User client started successfully.")
+            if not User.is_connected:
+                logger.info("Starting User client...")
+                await User.start()
+                logger.info("User client started successfully.")
 
-        await Bot.idle()
-    finally:
-        await Bot.stop()
-        if User.is_connected:
-            await User.stop()
-        logger.info("Bot and User client stopped.")
+            await Bot.idle()
+        except asyncio.CancelledError:
+            logger.info("Shutting down gracefully.")
+            break
+        except Exception as e:
+            logger.error(f"Bot encountered an error: {e}")
+            await asyncio.sleep(5)  # Retry after 5 seconds
 
 
 # Run the bot (without asyncio.run())
