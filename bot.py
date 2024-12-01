@@ -11,16 +11,6 @@ from plugins import web_server
 # Configure the minimum channel ID for Pyrogram
 pyrogram.utils.MIN_CHANNEL_ID = -1009147483647
 
-# Create the user client instance for interaction with the Telegram API
-User = Client(
-    name="User",
-    api_hash=API_HASH,
-    api_id=API_ID,
-    session_string=STRING_SESSION,
-    workers=TG_BOT_WORKERS,
-    plugins={"root": "plugins"}
-)
-
 class Bot(Client):
     def __init__(self):
         super().__init__(
@@ -83,25 +73,3 @@ class Bot(Client):
         await app.setup()
         bind_address = "0.0.0.0"
         await web.TCPSite(app, bind_address, PORT).start()
-
-# Start the user client
-async def start_user_client():
-    try:
-        await User.start()
-        LOGGER(__name__).info("User client started successfully. Username: " + (await User.get_me()).username)
-    except errors.FloodWait as e:
-        LOGGER(__name__).error(f"Flood wait error: {e}")
-        sys.exit()
-    except Exception as e:
-        LOGGER(__name__).error(f"Failed to start User client: {e}")
-        sys.exit()
-
-# Main function to start both clients
-async def main():
-    await start_user_client()
-    bot = Bot()
-    await bot.start()
-
-# Start execution
-loop = asyncio.get_event_loop()
-loop.run_until_complete(main())
