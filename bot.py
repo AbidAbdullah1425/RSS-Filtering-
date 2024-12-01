@@ -5,7 +5,7 @@ from aiohttp import web
 from pyrogram import Client, errors
 from pyrogram.enums import ParseMode
 import pyrogram.utils
-from config import API_HASH, API_ID, LOGGER, BOT_TOKEN, TG_BOT_WORKERS, GROUP_ID, PORT, STRING_SESSION
+from config import API_HASH, API_ID, LOGGER, BOT_TOKEN, TG_BOT_WORKERS, GROUP_ID, PORT
 from plugins import web_server
 
 # Configure the minimum channel ID for Pyrogram
