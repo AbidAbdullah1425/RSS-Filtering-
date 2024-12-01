@@ -4,7 +4,7 @@ import logging
 from pyrogram import Client, filters
 from pymongo import MongoClient
 from config import RSS_URL, GROUP_ID, OWNER_ID, DB_URI, DB_NAME
-from bot import Bot, User
+from bot import Bot
 
 # Configure logging
 logging.basicConfig(
@@ -16,8 +16,8 @@ logger = logging.getLogger("RSSBot")
 # MongoDB setup
 mongo_client = MongoClient(DB_URI)
 db = mongo_client[DB_NAME]
-anime_collection = db["anime_names"]
-rss_collection = db["rss_entries"]
+anime_collection = db["ANIME_LISTS"]
+rss_collection = db["SENDED_ANIME"]
 
 is_reading = False  # Flag to track reading status
 
@@ -27,7 +27,7 @@ def format_rss_message(title, link):
     import re
 
     # Default values
-    episode_number = "EP01"
+    episode_number = "Unknown"
     anime_name = "Unknown Anime"
 
     # Attempt to parse episode number and anime name from the title
@@ -35,10 +35,14 @@ def format_rss_message(title, link):
     if match:
         anime_name = match.group(1).strip()
         episode_number = f"EP{int(match.group(2)):02d}"
+    else:
+        anime_name = title
 
     formatted_message = (
-        f"/leech {link} -n [{episode_number}] - "
-        f"[{anime_name}][Eng Sub][1080p][@AnimeQuestX].mkv"
+        f"/leech {link}\n"
+        f"Anime name: {anime_name}\n"
+        f"Episode number: {episode_number}\n"
+        f"Full title: {title}"
     )
     return formatted_message
 
@@ -60,12 +64,8 @@ async def fetch_and_send_anime():
                     continue
 
                 if any(name.lower() in title.lower() for name in anime_names):
-                    if not User.is_connected:
-                        logger.error("User client is not connected. Cannot send message.")
-                        continue
-
                     formatted_message = format_rss_message(title, link)
-                    await User.send_message(
+                    await Bot.send_message(
                         GROUP_ID,
                         formatted_message,
                         disable_web_page_preview=True,
@@ -77,6 +77,10 @@ async def fetch_and_send_anime():
 
         except Exception as e:
             logger.error(f"Error in fetch_and_send_anime: {e}")
+            await Bot.send_message(
+                OWNER_ID,
+                f"An error occurred: {e}. RSS feed reading has been paused.",
+            )
 
 
 @Bot.on_message(filters.command("startread") & filters.private & filters.user(OWNER_ID))
@@ -98,21 +102,6 @@ async def stop_read(_, message):
     else:
         is_reading = False
         await message.reply_text("Stopped reading the RSS feed.")
-
-
-@Bot.on_message(filters.command("startuser") & filters.private & filters.user(OWNER_ID))
-async def start_user_client(_, message):
-    """Force-start the User client."""
-    if User.is_connected:
-        await message.reply_text("User client is already running.")
-    else:
-        try:
-            logger.info("Starting User client...")
-            await User.start()
-            await message.reply_text("User client started successfully!")
-        except Exception as e:
-            logger.error(f"Failed to start User client: {e}")
-            await message.reply_text("Failed to start User client. Please check the logs.")
 
 
 @Bot.on_message(filters.command("listtasks") & filters.private & filters.user(OWNER_ID))
@@ -154,27 +143,10 @@ async def delete_task(_, message):
         await message.reply_text(f"`{anime_name}` is not in the tracked list.")
 
 
-async def start_bot():
-    """Start the bot and User client."""
-    while True:
-        try:
-            logger.info("Starting Pyrogram bot...")
-            await Bot.start()
-            logger.info("Bot started successfully.")
+# Notify owner if the bot stops unexpectedly
+async def notify_owner_on_shutdown():
+    try:
+        await Bot.send_message(OWNER_ID, "Bot has stopped unexpectedly. Please check logs.")
+    except Exception as e:
+        logger.error(f"Failed to notify owner: {e}")
 
-            if not User.is_connected:
-                logger.info("Starting User client...")
-                await User.start()
-                logger.info("User client started successfully.")
-
-            await Bot.idle()
-        except asyncio.CancelledError:
-            logger.info("Shutting down gracefully.")
-            break
-        except Exception as e:
-            logger.error(f"Bot encountered an error: {e}")
-            await asyncio.sleep(5)  # Retry after 5 seconds
-
-
-# Run the bot (without asyncio.run())
-asyncio.create_task(start_bot())
