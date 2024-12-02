@@ -3,7 +3,7 @@ import asyncio
 import logging
 from bot import Bot
 from pyrogram import filters
-from config import OWNER_ID, DB_URI, DB_NAME, RSS_URL, CHECK_INTERVAL
+from config import OWNER_ID, DB_URI, DB_NAME, RSS_URL, CHECK_INTERVAL, CHANNEL_ID
 from motor.motor_asyncio import AsyncIOMotorClient
 
 # MongoDB Setup
