@@ -1,152 +1,92 @@
-import asyncio
 import feedparser
+import asyncio
 import logging
-from pyrogram import Client, filters
-from pymongo import MongoClient
-from config import RSS_URL, GROUP_ID, OWNER_ID, DB_URI, DB_NAME
 from bot import Bot
+from pyrogram import filters
+from config import OWNER_ID, DB_URI, DB_NAME
+from motor.motor_asyncio import AsyncIOMotorClient
 
-# Configure logging
+# MongoDB Setup
+client = AsyncIOMotorClient(DB_URI)
+db = client[DB_NAME]
+posts_collection = db.posts
+
+# Logger setup
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    level=logging.INFO
 )
-logger = logging.getLogger("RSSBot")
+logger = logging.getLogger(__name__)
 
-# MongoDB setup
-mongo_client = MongoClient(DB_URI)
-db = mongo_client[DB_NAME]
-anime_collection = db["ANIME_LISTS"]
-rss_collection = db["SENDED_ANIME"]
+# Variables
+RSS_URL = "https://subsplease.org/rss/?t&r=sd"
+CHANNEL_ID = -1002322411485
+CHECK_INTERVAL = 60  # seconds
+is_running = False
 
-is_reading = False  # Flag to track reading status
+async def fetch_and_send_rss():
+    while is_running:
+        logger.info("Fetching RSS feed...")
+        feed = feedparser.parse(RSS_URL)
+        if feed.entries:
+            new_entries = []
+            logger.info("Found %d entries in the RSS feed.", len(feed.entries))
 
+            # Collect new entries in down-to-top order (oldest to newest)
+            for entry in reversed(feed.entries):
+                if not await posts_collection.find_one({"_id": entry.id}):
+                    new_entries.append(entry)
 
-def format_rss_message(title, link):
-    """Format the RSS entry message to the specified format."""
-    import re
+            if new_entries:
+                logger.info("Found %d new entries to process.", len(new_entries))
 
-    # Default values
-    episode_number = "Unknown"
-    anime_name = "Unknown Anime"
-
-    # Attempt to parse episode number and anime name from the title
-    match = re.search(r"(.+?)\s*-\s*(\d+)", title)
-    if match:
-        anime_name = match.group(1).strip()
-        episode_number = f"EP{int(match.group(2)):02d}"
-    else:
-        anime_name = title
-
-    formatted_message = (
-        f"/leech {link}\n"
-        f"Anime name: {anime_name}\n"
-        f"Episode number: {episode_number}\n"
-        f"Full title: {title}"
-    )
-    return formatted_message
-
-
-async def fetch_and_send_anime():
-    """Fetch matching anime titles from the RSS feed and send them to the group."""
-    global is_reading
-    logger.info("Starting RSS feed reading...")
-    while is_reading:
-        try:
-            feed = feedparser.parse(RSS_URL)
-            anime_names = [anime["name"] for anime in anime_collection.find()]
-
-            for entry in feed.entries:
+            for entry in new_entries:
                 title = entry.title
-                link = entry.link
+                torrent_link = entry.link
+                message = f"{title}\n\n`{torrent_link}` #torrent"
 
-                if rss_collection.find_one({"link": link}):
-                    continue
+                # Send to private channel
+                try:
+                    await Bot.send_message(chat_id=CHANNEL_ID, text=message)
+                    logger.info("Successfully sent post: %s", title)
 
-                if any(name.lower() in title.lower() for name in anime_names):
-                    formatted_message = format_rss_message(title, link)
-                    await Bot.send_message(
-                        GROUP_ID,
-                        formatted_message,
-                        disable_web_page_preview=True,
-                    )
-                    rss_collection.insert_one({"link": link, "title": title})
+                    # Save the entry to the database
+                    await posts_collection.insert_one({"_id": entry.id, "title": entry.title, "link": entry.link})
+                except Exception as e:
+                    logger.error("Failed to send post: %s. Error: %s", title, str(e))
+            
+            if not new_entries:
+                logger.info("No new entries to process.")
 
-            logger.info("RSS feed processed. Sleeping for 2 minutes.")
-            await asyncio.sleep(120)  # 2-minute interval
+        else:
+            logger.warning("No entries found in the RSS feed.")
 
-        except Exception as e:
-            logger.error(f"Error in fetch_and_send_anime: {e}")
-            await Bot.send_message(
-                OWNER_ID,
-                f"An error occurred: {e}. RSS feed reading has been paused.",
-            )
+        await asyncio.sleep(CHECK_INTERVAL)
 
+# Start command
+@Bot.on_message(filters.command("start") & filters.user(OWNER_ID))
+async def start_rss(client, message):
+    global is_running
 
-@Bot.on_message(filters.command("startread") & filters.private & filters.user(OWNER_ID))
-async def start_read(_, message):
-    global is_reading
-    if is_reading:
-        await message.reply_text("Already reading the RSS feed.")
+    if not is_running:
+        is_running = True
+        logger.info("Received start command from OWNER_ID.")
+        await message.reply_text("Started monitoring RSS feed.")
+        await fetch_and_send_rss()
     else:
-        is_reading = True
-        await message.reply_text("Started reading the RSS feed.")
-        asyncio.create_task(fetch_and_send_anime())
+        logger.info("Start command received, but monitoring is already running.")
+        await message.reply_text("RSS feed monitoring is already running.")
 
+# Stop command
+@Bot.on_message(filters.command("stop") & filters.user(OWNER_ID))
+async def stop_rss(client, message):
+    global is_running
 
-@Bot.on_message(filters.command("stopread") & filters.private & filters.user(OWNER_ID))
-async def stop_read(_, message):
-    global is_reading
-    if not is_reading:
-        await message.reply_text("Not currently reading the RSS feed.")
+    if is_running:
+        is_running = False
+        logger.info("Received stop command from OWNER_ID. Stopping monitoring.")
+        await message.reply_text("Stopped monitoring RSS feed.")
     else:
-        is_reading = False
-        await message.reply_text("Stopped reading the RSS feed.")
-
-
-@Bot.on_message(filters.command("listtasks") & filters.private & filters.user(OWNER_ID))
-async def list_tasks(_, message):
-    anime_names = [anime["name"] for anime in anime_collection.find()]
-    if anime_names:
-        await message.reply_text("Tracked anime:\n" + "\n".join(anime_names))
-    else:
-        await message.reply_text("No anime is currently being tracked.")
-
-
-@Bot.on_message(filters.command("addtasks") & filters.private & filters.user(OWNER_ID))
-async def add_task(_, message):
-    args = message.text.split(" ", 1)
-    if len(args) < 2:
-        await message.reply_text("Usage: /addtasks <anime_name>")
-        return
-
-    anime_name = args[1].strip()
-    if anime_collection.find_one({"name": anime_name}):
-        await message.reply_text(f"`{anime_name}` is already being tracked.")
-    else:
-        anime_collection.insert_one({"name": anime_name})
-        await message.reply_text(f"Added `{anime_name}` to the tracked list.")
-
-
-@Bot.on_message(filters.command("deltasks") & filters.private & filters.user(OWNER_ID))
-async def delete_task(_, message):
-    args = message.text.split(" ", 1)
-    if len(args) < 2:
-        await message.reply_text("Usage: /deltasks <anime_name>")
-        return
-
-    anime_name = args[1].strip()
-    result = anime_collection.delete_one({"name": anime_name})
-    if result.deleted_count:
-        await message.reply_text(f"Removed `{anime_name}` from the tracked list.")
-    else:
-        await message.reply_text(f"`{anime_name}` is not in the tracked list.")
-
-
-# Notify owner if the bot stops unexpectedly
-async def notify_owner_on_shutdown():
-    try:
-        await Bot.send_message(OWNER_ID, "Bot has stopped unexpectedly. Please check logs.")
-    except Exception as e:
-        logger.error(f"Failed to notify owner: {e}")
+        logger.info("Stop command received, but monitoring was not running.")
+        await message.reply_text("RSS feed monitoring is not running.")
 
