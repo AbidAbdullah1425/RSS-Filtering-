@@ -34,6 +34,9 @@ GROUP_ID = int(os.environ.get("GROUP_ID","-1002322411485"))
 RSS_URL = os.environ.get("RSS_URL","https://subsplease.org/rss/?r=sd")
 
 
+CHECK_INTERVAL = int(os.environ.get("CHECK_INTERVAL", "60"))
+
+
 #force sub channel id, if you want enable force sub
 FORCE_SUB_CHANNEL_1 = int(os.environ.get("FORCE_SUB_CHANNEL_1", "-1002077054432"))
 FORCE_SUB_CHANNEL_2 = int(os.environ.get("FORCE_SUB_CHANNEL_2", "-1002003740934"))
