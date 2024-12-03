@@ -6,6 +6,7 @@ pyromod==1.5
 dnspython
 feedparser
 motor
+git+https://github.com/KurimuzonAkuma/pyrogram.git@dev#egg=pyrogram
 
 
 
