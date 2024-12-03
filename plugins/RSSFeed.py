@@ -48,9 +48,11 @@ async def fetch_and_send_rss(client: Client):
 
                     try:
                         await client.send_message(chat_id=CHANNEL_ID, text=message)
-
                         logger.info("Successfully sent post: %s", title)
                         await posts_collection.insert_one({"_id": entry.id, "title": title, "link": torrent_link})
+
+                        # Wait for 10 seconds before processing the next entry
+                        await asyncio.sleep(10)
                     except Exception as e:
                         logger.error("Failed to send post: %s. Error: %s", title, str(e))
                 else:
@@ -63,6 +65,7 @@ async def fetch_and_send_rss(client: Client):
         await asyncio.sleep(CHECK_INTERVAL)
 
     logger.info("RSS feed monitoring stopped.")
+
 
 # Start command
 @Bot.on_message(filters.command("start") & filters.user(OWNER_ID))
