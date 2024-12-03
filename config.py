@@ -31,7 +31,7 @@ DB_NAME = os.environ.get("DATABASE_NAME", "Cluster0")
 
 GROUP_ID = int(os.environ.get("GROUP_ID","-1002322411485"))
 
-RSS_URL = os.environ.get("RSS_URL","https://subsplease.org/rss/?r=sd")
+RSS_URL = os.environ.get("RSS_URL","https://subsplease.org/rss/?t&r=sd")
 
 
 CHECK_INTERVAL = int(os.environ.get("CHECK_INTERVAL", "60"))
