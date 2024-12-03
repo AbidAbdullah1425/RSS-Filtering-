@@ -2,7 +2,7 @@ import feedparser
 import asyncio
 import logging
 from bot import Bot
-from pyrogram import filters
+from pyrogram import filters client
 from config import OWNER_ID, DB_URI, DB_NAME, RSS_URL, CHECK_INTERVAL, CHANNEL_ID
 from motor.motor_asyncio import AsyncIOMotorClient
 
@@ -47,7 +47,8 @@ async def fetch_and_send_rss():
                     message = f"> {title}\n\n`{torrent_link}` #torrent"
 
                     try:
-                        await Bot.send_message(chat_id=CHANNEL_ID, text=message, parse_mode="HTML")
+                        await client.send_message(chat_id=CHANNEL_ID, text=message)
+
                         logger.info("Successfully sent post: %s", title)
                         await posts_collection.insert_one({"_id": entry.id, "title": title, "link": torrent_link})
                     except Exception as e:
