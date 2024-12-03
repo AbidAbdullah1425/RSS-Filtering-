@@ -44,7 +44,7 @@ async def fetch_and_send_rss(client: Client):
                 for entry in new_entries:
                     title = entry.title
                     torrent_link = entry.link
-                    message = f"> {title}\n\n`{torrent_link}`"
+                    message = f"> {title}\n\n{torrent_link}"
 
                     try:
                         await client.send_message(chat_id=CHANNEL_ID, text=message)
