@@ -7,8 +7,8 @@ from config import OWNER_ID, DB_URI, DB_NAME, RSS_URL, CHECK_INTERVAL, CHANNEL_I
 from motor.motor_asyncio import AsyncIOMotorClient
 
 # MongoDB Setup
-client = AsyncIOMotorClient(DB_URI)
-db = client[DB_NAME]
+mongo_client = AsyncIOMotorClient(DB_URI)
+db = mongo_client[DB_NAME]
 posts_collection = db.posts
 
 # Logger setup
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 # Variables
 rss_event = asyncio.Event()
 
-async def fetch_and_send_rss():
+async def fetch_and_send_rss(client: Client):
     logger.info("Starting RSS feed monitoring...")
     while rss_event.is_set():
         try:
