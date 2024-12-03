@@ -47,7 +47,7 @@ async def fetch_and_send_rss():
                     message = f"> {title}\n\n`{torrent_link}` #torrent"
 
                     try:
-                        await Bot.send_message(chat_id=channel_id, text=post_text, parse_mode="HTML")
+                        await Bot.send_message(chat_id=CHANNEL_ID, text=post_text, parse_mode="HTML")
                         logger.info("Successfully sent post: %s", title)
                         await posts_collection.insert_one({"_id": entry.id, "title": title, "link": torrent_link})
                     except Exception as e:
