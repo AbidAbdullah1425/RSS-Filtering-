@@ -44,7 +44,7 @@ async def fetch_and_send_rss(client: Client):
                 for entry in new_entries:
                     title = entry.title
                     torrent_link = entry.link
-                    message = f"> {title}\n\n`{torrent_link}` #torrent"
+                    message = f"> {title}\n\n`{torrent_link}`"
 
                     try:
                         await client.send_message(chat_id=CHANNEL_ID, text=message)
@@ -66,19 +66,19 @@ async def fetch_and_send_rss(client: Client):
 
 # Start command
 @Bot.on_message(filters.command("start") & filters.user(OWNER_ID))
-async def start_rss(client, message):
+async def start_rss(client: Client, message):
     if not rss_event.is_set():
         rss_event.set()
         logger.info("Start command received. Starting RSS monitoring.")
         await message.reply_text("✅ RSS feed monitoring started.")
-        asyncio.create_task(fetch_and_send_rss())
+        asyncio.create_task(fetch_and_send_rss(client))
     else:
         logger.info("Start command received, but monitoring is already running.")
         await message.reply_text("⚠️ RSS feed monitoring is already running.")
 
 # Stop command
 @Bot.on_message(filters.command("stop") & filters.user(OWNER_ID))
-async def stop_rss(client, message):
+async def stop_rss(client: Client, message):
     if rss_event.is_set():
         rss_event.clear()
         logger.info("Stop command received. Stopping RSS monitoring.")
